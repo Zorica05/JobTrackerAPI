@@ -1,13 +1,21 @@
 from datetime import datetime
+from enum import Enum
 
 from pydantic import BaseModel
+
+
+class JobStatus(str, Enum):
+    APPLIED = "applied"
+    INTERVIEW = "interview"
+    REJECTED = "rejected"
+    HIRED = "hired"
 
 
 class JobBase(BaseModel):
     company: str
     position: str
     description: str | None = None
-    status: str = "applied"
+    status: JobStatus = JobStatus.APPLIED
 
 
 class JobCreate(JobBase):
@@ -18,7 +26,7 @@ class JobUpdate(BaseModel):
     company: str | None = None
     position: str | None = None
     description: str | None = None
-    status: str | None = None
+    status: JobStatus | None = None
 
 
 class JobResponse(JobBase):
