@@ -12,8 +12,8 @@ class JobStatus(str, Enum):
 
 
 class JobBase(BaseModel):
-    company: str
-    position: str
+    company: str | None = None
+    position: str | None = None
     description: str | None = None
     status: JobStatus = JobStatus.APPLIED
 
@@ -31,7 +31,8 @@ class JobUpdate(BaseModel):
 
 class JobResponse(JobBase):
     id: int
-    applied_at: datetime
+    user_id: int
+    applied_at: datetime | None = None
 
     class Config:
         from_attributes = True

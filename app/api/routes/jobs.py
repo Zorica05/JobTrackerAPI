@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db.database import SessionLocal
@@ -41,12 +41,37 @@ def create_job(
 
 @router.get("/", response_model=list[JobResponse])
 def get_jobs(
+    search: str | None = None,
+    status: str | None = None,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user_id: int = Depends(get_current_user_id),
 ):
-    return db.query(Job).filter(
+    query = db.query(Job).filter(
         Job.user_id == current_user_id
-    ).all()
+    )
+
+    if search:
+        search_pattern = f"%{search}%"
+
+        query = query.filter(
+            (Job.company.ilike(search_pattern))
+            | (Job.position.ilike(search_pattern))
+        )
+
+    if status:
+        query = query.filter(
+            Job.status == status
+        )
+
+    return (
+        query
+        .order_by(Job.id.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
 @router.get("/{job_id}", response_model=JobResponse)
