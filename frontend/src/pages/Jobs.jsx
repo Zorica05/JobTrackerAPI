@@ -15,13 +15,29 @@ function Jobs() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
+  const [page, setPage] = useState(1);
+  const limit = 5;
+
   useEffect(() => {
     getJobs();
-  }, []);
+  }, [page, search, filterStatus]);
 
   const getJobs = async () => {
     try {
-      const response = await api.get("/jobs/");
+      const params = {
+        skip: (page - 1) * limit,
+        limit: limit,
+      };
+
+      if (search) {
+        params.search = search;
+      }
+
+      if (filterStatus !== "all") {
+        params.status = filterStatus;
+      }
+
+      const response = await api.get("/jobs/", { params });
       setJobs(response.data);
     } catch (error) {
       if (localStorage.getItem("token")) {
@@ -86,6 +102,8 @@ function Jobs() {
   };
 
   const deleteJob = async (jobId) => {
+    setError("");
+
     try {
       await api.delete(`/jobs/${jobId}`);
 
@@ -113,19 +131,6 @@ function Jobs() {
     localStorage.removeItem("token");
     window.location.href = "/";
   };
-
-  const filteredJobs = jobs.filter((job) => {
-    const searchText = search.toLowerCase();
-
-    const matchesSearch =
-      job.company.toLowerCase().includes(searchText) ||
-      job.position.toLowerCase().includes(searchText);
-
-    const matchesStatus =
-      filterStatus === "all" || job.status === filterStatus;
-
-    return matchesSearch && matchesStatus;
-  });
 
   const totalJobs = jobs.length;
 
@@ -167,7 +172,6 @@ function Jobs() {
       </nav>
 
       <main className="container">
-
         <div className="stats-grid">
           <div className="stat-card">
             <h3>Total Jobs</h3>
@@ -200,11 +204,7 @@ function Jobs() {
             {editingJobId ? "Edit Job" : "Add New Job"}
           </h2>
 
-          {error && (
-            <p className="error">
-              {error}
-            </p>
-          )}
+          {error && <p className="error">{error}</p>}
 
           <form
             onSubmit={
@@ -266,21 +266,10 @@ function Jobs() {
                   setStatus(e.target.value)
                 }
               >
-                <option value="applied">
-                  Applied
-                </option>
-
-                <option value="interview">
-                  Interview
-                </option>
-
-                <option value="rejected">
-                  Rejected
-                </option>
-
-                <option value="hired">
-                  Hired
-                </option>
+                <option value="applied">Applied</option>
+                <option value="interview">Interview</option>
+                <option value="rejected">Rejected</option>
+                <option value="hired">Hired</option>
               </select>
             </div>
 
@@ -314,9 +303,10 @@ function Jobs() {
             type="text"
             placeholder="Search by company or position..."
             value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
           />
 
           <br />
@@ -324,39 +314,26 @@ function Jobs() {
 
           <select
             value={filterStatus}
-            onChange={(e) =>
-              setFilterStatus(e.target.value)
-            }
+            onChange={(e) => {
+              setFilterStatus(e.target.value);
+              setPage(1);
+            }}
           >
-            <option value="all">
-              All Statuses
-            </option>
-
-            <option value="applied">
-              Applied
-            </option>
-
-            <option value="interview">
-              Interview
-            </option>
-
-            <option value="rejected">
-              Rejected
-            </option>
-
-            <option value="hired">
-              Hired
-            </option>
+            <option value="all">All Statuses</option>
+            <option value="applied">Applied</option>
+            <option value="interview">Interview</option>
+            <option value="rejected">Rejected</option>
+            <option value="hired">Hired</option>
           </select>
         </div>
 
         <h2>My Jobs</h2>
 
-        {filteredJobs.length === 0 ? (
+        {jobs.length === 0 ? (
           <p>No jobs found.</p>
         ) : (
           <div className="jobs-grid">
-            {filteredJobs.map((job) => (
+            {jobs.map((job) => (
               <div
                 className="job-card"
                 key={job.id}
@@ -406,6 +383,39 @@ function Jobs() {
             ))}
           </div>
         )}
+
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            marginTop: "20px",
+            alignItems: "center",
+          }}
+        >
+          <button
+            className="cancel-button"
+            onClick={() =>
+              setPage((current) =>
+                Math.max(current - 1, 1)
+              )
+            }
+            disabled={page === 1}
+          >
+            Previous
+          </button>
+
+          <span>Page {page}</span>
+
+          <button
+            className="primary-button"
+            onClick={() =>
+              setPage((current) => current + 1)
+            }
+            disabled={jobs.length < limit}
+          >
+            Next
+          </button>
+        </div>
       </main>
     </div>
   );
